@@ -18,7 +18,7 @@ object RNG {
   val int: Rand[Int] = State(r => r.nextInt)
   def unit[A](a: A): Rand[A] = State.unit(a)
 
-  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = State{ r =>
+  def map2[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = State { r =>
     val (a, r1) = ra.run(r)
     val (b, r2) = rb.run(r1)
 
@@ -27,7 +27,7 @@ object RNG {
 
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = fs match {
     case r :: rs => map2(r, sequence(rs))(_ :: _)
-    case _ => unit(List[A]())
+    case _       => unit(List[A]())
   }
 
   def ints(count: Int)(rng: RNG): (List[Int], RNG) = sequence(List.fill(count)(int)).run(rng)
@@ -40,7 +40,9 @@ object RNG {
   def nonNegativeLessThan(n: Int): Rand[Int] = {
     nonNegativeInt.flatMap { i =>
       val mod = i % n
-      if (i + (n-1) - mod >= 0) unit(mod) else nonNegativeLessThan(n)
+      if (i + (n - 1) - mod >= 0) unit(mod) else nonNegativeLessThan(n)
     }
   }
+
+  def boolean: Rand[Boolean] = int.map(_ % 2 == 0)
 }

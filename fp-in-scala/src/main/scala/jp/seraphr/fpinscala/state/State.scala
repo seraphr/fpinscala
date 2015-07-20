@@ -23,6 +23,6 @@ object State {
 
   def sequence[S, A](aList: List[State[S, A]]): State[S, List[A]] = aList match {
     case x :: xs => x.map2(sequence(xs))(_ :: _)
-    case _ => unit[S, List[A]](Nil)
+    case _       => unit[S, List[A]](Nil)
   }
 }
