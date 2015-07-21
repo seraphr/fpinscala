@@ -44,5 +44,13 @@ object RNG {
     }
   }
 
+  def double: Rand[Double] = {
+    nonNegativeInt.map { i =>
+      i / (Int.MaxValue.toDouble + 1)
+    }
+  }
+
+  def doubles(count: Int): Rand[List[Double]] = sequence(List.fill(count)(double))
+
   def boolean: Rand[Boolean] = int.map(_ % 2 == 0)
 }
