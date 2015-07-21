@@ -25,6 +25,6 @@ object Gen {
   def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = {
     val tRatio = g1._2 / (g1._2 + g2._2)
 
-    double.flatMap(d => if(d < tRatio) g1._1 else g2._1)
+    double.flatMap(d => if (d < tRatio) g1._1 else g2._1)
   }
 }
