@@ -7,6 +7,7 @@ import jp.seraphr.fpinscala.state.{ State, RNG }
 case class Gen[A](sample: State[RNG, A]) {
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(sample.flatMap(a => f(a).sample))
   def listOfN(size: Gen[Int]): Gen[List[A]] = size.flatMap(Gen.listOfN(_, this))
+  def unsized: SGen[A] = SGen(_ => this)
 }
 
 object Gen {
