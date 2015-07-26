@@ -23,6 +23,8 @@ object Gen {
   def boolean: Gen[Boolean] = Gen(RNG.boolean)
   def double: Gen[Double] = Gen(RNG.double)
   def listOfN[A](n: Int, g: Gen[A]): Gen[List[A]] = Gen(RNG.sequence(List.fill(n)(g.sample)))
+  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(n => listOfN(n, g))
+
   def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] = boolean.flatMap(b => if (b) g1 else g2)
   def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = {
     val tRatio = g1._2 / (g1._2 + g2._2)
