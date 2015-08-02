@@ -9,6 +9,8 @@ object Prop {
   type FailedCase = String
   type SuccessCount = Int
   type TestCases = Int
+  type MaxSize = Int
+
   sealed trait Result {
     def isFalsified: Boolean
   }
@@ -21,21 +23,21 @@ object Prop {
     override def isFalsified: Boolean = true
   }
 
-  case class Prop(run: (TestCases, RNG) => Result) {
-    def &&(p: Prop): Prop = Prop { (tCases, tRng) =>
-      val tFirst = this.run(tCases, tRng)
+  case class Prop(run: (MaxSize, TestCases, RNG) => Result) {
+    def &&(p: Prop): Prop = Prop { (tMaxSize, tCases, tRng) =>
+      val tFirst = this.run(tMaxSize, tCases, tRng)
       if (tFirst.isFalsified)
         tFirst
       else
-        p.run(tCases, tRng)
+        p.run(tMaxSize, tCases, tRng)
     }
 
-    def ||(p: Prop): Prop = Prop { (tCases, tRng) =>
-      val tFirst = this.run(tCases, tRng)
+    def ||(p: Prop): Prop = Prop { (tMaxSize, tCases, tRng) =>
+      val tFirst = this.run(tMaxSize, tCases, tRng)
       if (!tFirst.isFalsified)
         tFirst
       else
-        p.run(tCases, tRng)
+        p.run(tMaxSize, tCases, tRng)
     }
   }
 
@@ -43,7 +45,7 @@ object Prop {
     Streams.unfold(rng)(rng => Some(g.sample.run(rng)))
 
   def forAll[A](as: Gen[A])(f: A => Boolean): Prop = Prop {
-    (n, rng) =>
+    (tMaxSize, n, rng) =>
       randomStream(as)(rng).zip(Stream.from(0)).take(n).map {
         case (a, i) => try {
           if (f(a)) Passed else Falsified(a.toString, i)
@@ -51,8 +53,34 @@ object Prop {
       }.find(_.isFalsified).getOrElse(Passed)
   }
 
+  def forAll[A](g: SGen[A])(f: A => Boolean): Prop =
+    forAll(g.forSize)(f)
+
+  def forAll[A](g: Int => Gen[A])(f: A => Boolean): Prop = Prop {
+    (max, n, rng) =>
+      val casesPerSize = (n - 1) / max + 1
+      val props: Stream[Prop] =
+        Stream.from(0).take((n min max) + 1).map(i => forAll(g(i))(f))
+      val prop: Prop =
+        props.map(p => Prop { (max, n, rng) =>
+          p.run(max, casesPerSize, rng)
+        }).toList.reduce(_ && _)
+      prop.run(max, n, rng)
+  }
+
   def buildMsg[A](s: A, e: Exception): String =
     s"test case: $s\n" +
       s"generated an exception: ${e.getMessage}\n" +
       s"stack trace:\n ${e.getStackTrace.mkString("\n")}"
+
+  def run(p: Prop,
+    maxSize: Int = 100,
+    testCases: Int = 100,
+    rng: RNG = RNG.Simple(System.currentTimeMillis)): Unit =
+    p.run(maxSize, testCases, rng) match {
+      case Falsified(msg, n) =>
+        println(s"! Falsified after $n passed tests:\n $msg")
+      case Passed =>
+        println(s"+ OK, passed $testCases tests.")
+    }
 }
