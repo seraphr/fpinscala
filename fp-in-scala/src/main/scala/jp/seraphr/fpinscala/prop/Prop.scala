@@ -19,6 +19,10 @@ object Prop {
     override def isFalsified: Boolean = false
   }
 
+  case object Proved extends Result {
+    override def isFalsified: Boolean = false
+  }
+
   case class Falsified(failure: FailedCase, successes: SuccessCount) extends Result {
     override def isFalsified: Boolean = true
   }
@@ -37,20 +41,41 @@ object Prop {
       if (!tFirst.isFalsified)
         tFirst
       else
-        p.run(tMaxSize, tCases, tRng)
+        (tFirst, p.run(tMaxSize, tCases, tRng)) match {
+          case (Proved, Proved) => Proved
+          case (_, r)           => r
+        }
     }
   }
 
   def randomStream[A](g: Gen[A])(rng: RNG): Stream[A] =
     Streams.unfold(rng)(rng => Some(g.sample.run(rng)))
 
-  def forAll[A](as: Gen[A])(f: A => Boolean): Prop = Prop {
+  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = Prop {
     (tMaxSize, n, rng) =>
-      randomStream(as)(rng).zip(Stream.from(0)).take(n).map {
-        case (a, i) => try {
-          if (f(a)) Passed else Falsified(a.toString, i)
-        } catch { case e: Exception => Falsified(buildMsg(a, e), i) }
-      }.find(_.isFalsified).getOrElse(Passed)
+      val tMaxExhaustive = n / 2
+      @annotation.tailrec
+      def runInner(i: Int, end: Int, valueStream: Stream[A], onEnd: Result): Result = {
+        if (i >= end) if (valueStream.isEmpty) onEnd else Passed
+        else valueStream match {
+          case a #:: as => if (f(a)) runInner(i + 1, end, as, onEnd) else Falsified(a.toString, i)
+          case _        => onEnd
+        }
+      }
+
+      def runExhaustive: Either[Int, Result] = gen.exhaustive match {
+        case None => Left(0)
+        case Some(s) => runInner(0, tMaxExhaustive, s, Proved) match {
+          case Passed => Left(tMaxExhaustive)
+          case r      => Right(r)
+        }
+      }
+
+      // Left(n) => 追加でn回テストを行う Right(r) => rを結果とする
+      runExhaustive match {
+        case Right(r) => r
+        case Left(i)  => runInner(i, n, randomStream(gen)(rng).take(n - i), Passed)
+      }
   }
 
   def forAll[A](g: SGen[A])(f: A => Boolean): Prop =
@@ -65,7 +90,12 @@ object Prop {
         props.map(p => Prop { (max, n, rng) =>
           p.run(max, casesPerSize, rng)
         }).toList.reduce(_ && _)
-      prop.run(max, n, rng)
+
+      // サイズ付きテストは、より大きいmaxに対する証明が行われないため、ProvedをPassedに変更
+      prop.run(max, n, rng) match {
+        case Proved => Passed
+        case r      => r
+      }
   }
 
   def buildMsg[A](s: A, e: Exception): String =
@@ -82,5 +112,7 @@ object Prop {
         println(s"! Falsified after $n passed tests:\n $msg")
       case Passed =>
         println(s"+ OK, passed $testCases tests.")
+      case Proved =>
+        println(s"+ OK, proved.")
     }
 }
