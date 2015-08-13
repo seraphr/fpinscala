@@ -8,6 +8,7 @@ object PropsMain extends App {
   Props.booleanListSort()
   Props.constLengthListSort()
   Props.takeWhile()
+  Props.takeWhile2()
 }
 
 object Props {
@@ -75,6 +76,23 @@ object Props {
 
     val tTakeWhileProp2 = forAll(listOf1(tSmallInt)) { tList =>
       (tList.takeWhile(isEven) ++ tList.dropWhile(isEven)) == tList
+    }
+
+    run(tTakeWhileProp1 && tTakeWhileProp2)
+  }
+
+  def takeWhile2() = {
+    val tSmallInt = choose(-10, 10)
+    val tFunc = func1[Int, Boolean](boolean).unsized
+
+    val tTakeWhileProp1 = forAll(tuple(listOf1(tSmallInt), tFunc)) {
+      case (tList, f) =>
+        tList.takeWhile(f).forall(f)
+    }
+
+    val tTakeWhileProp2 = forAll(tuple(listOf1(tSmallInt), tFunc)) {
+      case (tList, f) =>
+        (tList.takeWhile(f) ++ tList.dropWhile(f)) == tList
     }
 
     run(tTakeWhileProp1 && tTakeWhileProp2)

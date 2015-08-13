@@ -69,4 +69,25 @@ object Gen {
 
     double.flatMap(d => if (d < tRatio) g1._1 else g2._1)
   }
+
+  def tuple[A, B](g1: Gen[A], g2: Gen[B]): Gen[(A, B)] = {
+    val tExhaustive =
+      for {
+        a <- g1.exhaustive
+        b <- g2.exhaustive
+      } yield if (a.isEmpty || b.isEmpty) None else Some((a.get, b.get))
+
+    Gen(RNG.zip(g1.sample, g2.sample), tExhaustive)
+  }
+
+  def tuple[A, B](sg1: SGen[A], sg2: SGen[B]): SGen[(A, B)] = SGen { n =>
+    tuple(sg1.forSize(n), sg2.forSize(n))
+  }
+
+  def func1[A: CoGen, B](gen: Gen[B]): Gen[A => B] = {
+    val cogen = implicitly[CoGen[A]]
+    val f: A => Gen[B] = a => cogen.cogen(a)(gen)
+
+    Gen(State(rng => ((a: A) => cogen.cogen(a)(gen).sample.run(rng)._1, rng.nextInt._2)), gen.exhaustive.map(_.map(b => (a: A) => b)))
+  }
 }

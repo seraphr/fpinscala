@@ -25,6 +25,8 @@ object RNG {
     (f(a, b), r2)
   }
 
+  def zip[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A, B)] = map2(ra, rb)((_, _))
+
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = fs match {
     case r :: rs => map2(r, sequence(rs))(_ :: _)
     case _       => unit(List[A]())
@@ -53,4 +55,6 @@ object RNG {
   def doubles(count: Int): Rand[List[Double]] = sequence(List.fill(count)(double))
 
   def boolean: Rand[Boolean] = int.map(_ % 2 == 0)
+
+  def reseed[A](seed: Long)(r: Rand[A]): Rand[A] = State(_ => r.run(Simple(seed)))
 }
