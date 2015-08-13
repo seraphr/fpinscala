@@ -55,26 +55,26 @@ object Prop {
     (tMaxSize, n, rng) =>
       val tMaxExhaustive = n / 2
       @annotation.tailrec
-      def runInner(i: Int, end: Int, valueStream: Stream[A], onEnd: Result): Result = {
-        if (i >= end) if (valueStream.isEmpty) onEnd else Passed
+      def runInner(i: Int, end: Int, valueStream: Stream[Option[A]], onEnd: Result): (Result, Int) = {
+        if (i >= end) if (valueStream.isEmpty) (onEnd, i) else (Passed, i)
         else valueStream match {
-          case a #:: as => if (f(a)) runInner(i + 1, end, as, onEnd) else Falsified(a.toString, i)
-          case _        => onEnd
+          case Some(a) #:: as => if (f(a)) runInner(i + 1, end, as, onEnd) else (Falsified(a.toString, i), i)
+          case None #:: as    => (Passed, i)
+          case _              => (onEnd, i)
         }
       }
 
-      def runExhaustive: Either[Int, Result] = gen.exhaustive match {
-        case None => Left(0)
-        case Some(s) => runInner(0, tMaxExhaustive, s, Proved) match {
-          case Passed => Left(tMaxExhaustive)
-          case r      => Right(r)
+      def runExhaustive: Either[Int, Result] = {
+        runInner(0, tMaxExhaustive, gen.exhaustive, Proved) match {
+          case (Passed, i) => Left(n - i)
+          case (r, i)      => Right(r)
         }
       }
 
       // Left(n) => 追加でn回テストを行う Right(r) => rを結果とする
       runExhaustive match {
         case Right(r) => r
-        case Left(i)  => runInner(i, n, randomStream(gen)(rng).take(n - i), Passed)
+        case Left(i)  => runInner(n - i, n, randomStream(gen)(rng).take(i).map(Some(_)), Passed)._1
       }
   }
 
