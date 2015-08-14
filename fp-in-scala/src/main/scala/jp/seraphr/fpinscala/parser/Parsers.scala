@@ -55,8 +55,10 @@ trait Parsers[Parser[+_]] { self =>
   def char(c: Char): Parser[Char] =
     string(c.toString) map (_.charAt(0))
 
+  def succeed[A](a: A): Parser[A] = string("").map(_ => a)
+
   def slice[A](p: Parser[A]): Parser[String]
-  def many[A](p: Parser[A]): Parser[List[A]]
+  def many[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _) | succeed(List.empty)
   def many1[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _)
 
   def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
