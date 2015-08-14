@@ -1,5 +1,8 @@
 package jp.seraphr.fpinscala.parser
 
+import jp.seraphr.fpinscala.prop.Gen
+import jp.seraphr.fpinscala.prop.Prop
+
 import language.higherKinds
 import language.implicitConversions
 
@@ -19,6 +22,33 @@ trait Parsers[Parser[+_]] { self =>
     def |(p2: => Parser[A]) = self.or(p, p2)
     def product(p2: => Parser[A]) = self.product(p, p2)
     def **(p2: => Parser[A]) = self.product(p, p2)
+  }
+
+  object Laws {
+    object Laws {
+
+      import Prop.{ run => _, _ }
+      import Gen._
+
+      def equal[A](p1: Parser[A], p2: Parser[A])(in: Gen[String]): Prop =
+        forAll(in)(s => run(p1)(s) == run(p2)(s))
+
+      def mapLaw[A](p: Parser[A])(in: Gen[String]): Prop =
+        equal(p, p.map(a => a))(in)
+
+      def productLaw[A, B](p1: Parser[A], p2: Parser[B])(in: Gen[String]): Prop = {
+        forAll(in) { s =>
+          val tProductResult = run(product(p1, p2).slice)(s)
+          val tSeparatelyResult =
+            for {
+              tP1Result <- run(p1.slice)(s).right
+              tP2Result <- run(p1.slice)(s.substring(tP1Result.length)).right
+            } yield tP1Result + tP2Result
+
+          tProductResult == tSeparatelyResult
+        }
+      }
+    }
   }
 
   implicit def asStringParser[A](a: A)(implicit f: A => Parser[String]): ParserOps[String] = ParserOps(f(a))
