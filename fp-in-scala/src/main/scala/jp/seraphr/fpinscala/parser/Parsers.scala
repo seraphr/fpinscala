@@ -60,6 +60,10 @@ trait Parsers[Parser[+_]] { self =>
   def slice[A](p: Parser[A]): Parser[String]
   def many[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _) | succeed(List.empty)
   def many1[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _)
+  def listOfN[A](n: Int, p: Parser[A]): Parser[List[A]] = n match {
+    case n if n <= 0 => succeed(List.empty)
+    case n           => map2(p, listOfN(n - 1, p))(_ :: _)
+  }
 
   def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
   def map[A, B](a: Parser[A])(f: A => B): Parser[B]
