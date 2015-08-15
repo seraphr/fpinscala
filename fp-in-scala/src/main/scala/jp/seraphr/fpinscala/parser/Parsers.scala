@@ -71,7 +71,7 @@ trait Parsers[Parser[+_]] {
   }
 
   def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
-  def map[A, B](a: Parser[A])(f: A => B): Parser[B]
+  def map[A, B](a: Parser[A])(f: A => B): Parser[B] = a.flatMap(f andThen succeed)
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
     for {
       a <- p1
