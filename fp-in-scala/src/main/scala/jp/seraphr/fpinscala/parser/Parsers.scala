@@ -9,7 +9,8 @@ import scala.util.matching.Regex
 
 /**
  */
-trait Parsers[Parser[+_]] { self =>
+trait Parsers[Parser[+_]] {
+  self =>
   type ParseError
 
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
@@ -72,11 +73,18 @@ trait Parsers[Parser[+_]] { self =>
   def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
   def map[A, B](a: Parser[A])(f: A => B): Parser[B]
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
-    product(p1, p2).map { case (a, b) => f(a, b) }
+    for {
+      a <- p1
+      b <- p2
+    } yield f(a, b)
 
   def flatMap[A, B](a: Parser[A])(f: A => Parser[B]): Parser[B]
 
-  def product[A, B](a: Parser[A], b: => Parser[B]): Parser[(A, B)]
+  def product[A, B](a: Parser[A], b: => Parser[B]): Parser[(A, B)] =
+    for {
+      ar <- a
+      br <- b
+    } yield (ar, br)
 
   def contextSensitiveParser: Parser[List[Char]] = "\\d".r.flatMap(n => listOfN(n.toInt, char('a')))
 }
