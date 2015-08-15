@@ -5,6 +5,7 @@ import jp.seraphr.fpinscala.prop.Prop
 
 import language.higherKinds
 import language.implicitConversions
+import scala.util.matching.Regex
 
 /**
  */
@@ -13,9 +14,12 @@ trait Parsers[Parser[+_]] { self =>
 
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
   implicit def string(s: String): Parser[String]
+  implicit def regex(r: Regex): Parser[String]
+
   implicit class ParserOps[A](p: Parser[A]) {
     def map[B](f: A => B) = self.map(p)(f)
     def map2[B, C](p2: Parser[B])(f: (A, B) => C) = self.map2(p, p2)(f)
+    def flatMap[B](f: A => Parser[B]) = self.flatMap(p)(f)
     def many = self.many(p)
     def many1 = self.many1(p)
     def slice = self.slice(p)
@@ -70,5 +74,9 @@ trait Parsers[Parser[+_]] { self =>
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
     product(p1, p2).map { case (a, b) => f(a, b) }
 
+  def flatMap[A, B](a: Parser[A])(f: A => Parser[B]): Parser[B]
+
   def product[A, B](a: Parser[A], b: => Parser[B]): Parser[(A, B)]
+
+  def contextSensitiveParser: Parser[List[Char]] = "\\d".r.flatMap(n => listOfN(n.toInt, char('a')))
 }
