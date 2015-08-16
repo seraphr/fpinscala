@@ -16,6 +16,8 @@ trait Parsers[Parser[+_]] {
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
   implicit def string(s: String): Parser[String]
   implicit def regex(r: Regex): Parser[String]
+  def whitespace = regex("\\s*".r)
+  def eof: Parser[String] = regex("\\z".r)
 
   implicit class ParserOps[A](p: Parser[A]) {
     def map[B](f: A => B) = self.map(p)(f)
@@ -23,10 +25,20 @@ trait Parsers[Parser[+_]] {
     def flatMap[B](f: A => Parser[B]) = self.flatMap(p)(f)
     def many = self.many(p)
     def many1 = self.many1(p)
+    def sep(sep: Parser[Any]) = self.sep(p, sep)
     def slice = self.slice(p)
-    def |(p2: => Parser[A]) = self.or(p, p2)
-    def product(p2: => Parser[A]) = self.product(p, p2)
-    def **(p2: => Parser[A]) = self.product(p, p2)
+    def |[B >: A](p2: => Parser[B]) = self.or(p, p2)
+    def orEmpty = self.orEmpty(p)
+    def product[B](p2: => Parser[B]) = self.product(p, p2)
+    def **[B](p2: => Parser[B]) = self.product(p, p2)
+    def *>[B](p2: => Parser[B]) = self.productRight(p, p2)
+    def <*[B](p2: => Parser[B]) = self.productLeft(p, p2)
+
+    def ignoreWhitespace = self.ignoreWhitespace(p)
+
+    def left[L, R](implicit ev: A <:< (L, R)): Parser[L] = p.map(a => ev(a)._1)
+    def right[L, R](implicit ev: A <:< (L, R)): Parser[R] = p.map(a => ev(a)._2)
+    def center[L, C, R](implicit ev: A =:= ((L, C), R)): Parser[C] = p.map(a => ev(a)._1._2)
   }
 
   object Laws {
@@ -70,7 +82,10 @@ trait Parsers[Parser[+_]] {
     case n           => map2(p, listOfN(n - 1, p))(_ :: _)
   }
 
+  def sep[A](p: Parser[A], sep: Parser[Any]): Parser[List[A]] = (p ** (sep *> p).many).map { case (v, vs) => v :: vs }
+
   def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
+  def orEmpty[A](p: Parser[A]): Parser[Option[A]] = p.map(Option(_)) | succeed(Option.empty)
   def map[A, B](a: Parser[A])(f: A => B): Parser[B] = a.flatMap(f andThen succeed)
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
     for {
@@ -86,5 +101,18 @@ trait Parsers[Parser[+_]] {
       br <- b
     } yield (ar, br)
 
+  def productRight[A, B](a: Parser[A], b: => Parser[B]): Parser[B] = product(a, b).right
+  def productLeft[A, B](a: Parser[A], b: => Parser[B]): Parser[A] = product(a, b).left
+
   def contextSensitiveParser: Parser[List[Char]] = "\\d".r.flatMap(n => listOfN(n.toInt, char('a')))
+
+  /**
+   * ignore が前後にn個つくのを無視する
+   * @param ignore
+   * @param p
+   * @tparam A
+   * @return
+   */
+  def ignore[A](ignore: Parser[Any], p: Parser[A]): Parser[A] = ignore.many *> p <* ignore.many
+  def ignoreWhitespace[A](p: Parser[A]) = ignore(whitespace, p)
 }
