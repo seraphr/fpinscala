@@ -124,6 +124,7 @@ trait Parsers[Parser[+_]] {
   def ignoreWhitespace[A](p: Parser[A]) = ignore(whitespace, p)
 
   def attempt[A](p: Parser[A]): Parser[A]
+  def commit[A](p: Parser[A]): Parser[A]
   def label[A](aLabel: String)(p: Parser[A]): Parser[A]
   def scope[A](aLabel: String)(p: Parser[A]): Parser[A]
 }
