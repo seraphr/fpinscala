@@ -7,23 +7,23 @@ import language.higherKinds
 import language.implicitConversions
 import scala.util.matching.Regex
 
+case class Location(input: String, offset: Int = 0) {
+  lazy val line = input.slice(0, offset + 1).count(_ == '\n') + 1
+  lazy val col = input.slice(0, offset + 1).lastIndexOf('\n') match {
+    case -1        => offset + 1
+    case lineStart => offset - lineStart
+  }
+}
+
+case class ParseError(stack: List[(Location, String)], isCommitted: Boolean = false)
+
 /**
  */
 trait Parsers[Parser[+_]] {
   self =>
-  case class Location(input: String, offset: Int = 0) {
-    lazy val line = input.slice(0, offset + 1).count(_ == '\n') + 1
-    lazy val col = input.slice(0, offset + 1).lastIndexOf('\n') match {
-      case -1        => offset + 1
-      case lineStart => offset - lineStart
-    }
-  }
-  case class ParseError(stack: List[(Location, String)])
 
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
-  implicit def string(s: String): Parser[String]
-  implicit def regex(r: Regex): Parser[String]
-  def whitespace = regex("\\s*".r)
+  def whitespace = regex("\\s".r)
   def eof: Parser[String] = regex("\\z".r)
 
   implicit class ParserOps[A](p: Parser[A]) {
@@ -40,6 +40,11 @@ trait Parsers[Parser[+_]] {
     def **[B](p2: => Parser[B]) = self.product(p, p2)
     def *>[B](p2: => Parser[B]) = self.productRight(p, p2)
     def <*[B](p2: => Parser[B]) = self.productLeft(p, p2)
+
+    def attempt = self.attempt(p)
+    def commit = self.commit(p)
+    def label(aLabel: String) = self.label(aLabel)(p)
+    def scope(aLabel: String) = self.scope(aLabel)(p)
 
     def ignoreWhitespace = self.ignoreWhitespace(p)
 
@@ -79,9 +84,6 @@ trait Parsers[Parser[+_]] {
   def char(c: Char): Parser[Char] =
     string(c.toString) map (_.charAt(0))
 
-  def succeed[A](a: A): Parser[A] = string("").map(_ => a)
-
-  def slice[A](p: Parser[A]): Parser[String]
   def many[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _) | succeed(List.empty)
   def many1[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p))(_ :: _)
   def listOfN[A](n: Int, p: Parser[A]): Parser[List[A]] = n match {
@@ -89,9 +91,8 @@ trait Parsers[Parser[+_]] {
     case n           => map2(p, listOfN(n - 1, p))(_ :: _)
   }
 
-  def sep[A](p: Parser[A], sep: Parser[Any]): Parser[List[A]] = (p ** (sep *> p).many).map { case (v, vs) => v :: vs }
+  def sep[A](p: Parser[A], sep: Parser[Any]): Parser[List[A]] = (p ** (sep *> p).many).map { case (v, vs) => v :: vs } | succeed(List.empty)
 
-  def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
   def orEmpty[A](p: Parser[A]): Parser[Option[A]] = p.map(Option(_)) | succeed(Option.empty)
   def map[A, B](a: Parser[A])(f: A => B): Parser[B] = a.flatMap(f andThen succeed)
   def map2[A, B, C](p1: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] =
@@ -99,8 +100,6 @@ trait Parsers[Parser[+_]] {
       a <- p1
       b <- p2
     } yield f(a, b)
-
-  def flatMap[A, B](a: Parser[A])(f: A => Parser[B]): Parser[B]
 
   def product[A, B](a: Parser[A], b: => Parser[B]): Parser[(A, B)] =
     for {
@@ -123,8 +122,14 @@ trait Parsers[Parser[+_]] {
   def ignore[A](ignore: Parser[Any], p: Parser[A]): Parser[A] = ignore.many *> p <* ignore.many
   def ignoreWhitespace[A](p: Parser[A]) = ignore(whitespace, p)
 
-  def attempt[A](p: Parser[A]): Parser[A]
-  def commit[A](p: Parser[A]): Parser[A]
+  implicit def string(s: String): Parser[String]
+  implicit def regex(r: Regex): Parser[String]
+  def succeed[A](a: A): Parser[A]
+  def slice[A](p: Parser[A]): Parser[String]
   def label[A](aLabel: String)(p: Parser[A]): Parser[A]
   def scope[A](aLabel: String)(p: Parser[A]): Parser[A]
+  def flatMap[A, B](a: Parser[A])(f: A => Parser[B]): Parser[B]
+  def attempt[A](p: Parser[A]): Parser[A]
+  def commit[A](p: Parser[A]): Parser[A]
+  def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A]
 }
