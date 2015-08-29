@@ -11,7 +11,14 @@ import scala.util.matching.Regex
  */
 trait Parsers[Parser[+_]] {
   self =>
-  type ParseError
+  case class Location(input: String, offset: Int = 0) {
+    lazy val line = input.slice(0, offset + 1).count(_ == '\n') + 1
+    lazy val col = input.slice(0, offset + 1).lastIndexOf('\n') match {
+      case -1        => offset + 1
+      case lineStart => offset - lineStart
+    }
+  }
+  case class ParseError(stack: List[(Location, String)])
 
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
   implicit def string(s: String): Parser[String]
@@ -115,4 +122,8 @@ trait Parsers[Parser[+_]] {
    */
   def ignore[A](ignore: Parser[Any], p: Parser[A]): Parser[A] = ignore.many *> p <* ignore.many
   def ignoreWhitespace[A](p: Parser[A]) = ignore(whitespace, p)
+
+  def attempt[A](p: Parser[A]): Parser[A]
+  def label[A](aLabel: String)(p: Parser[A]): Parser[A]
+  def scope[A](aLabel: String)(p: Parser[A]): Parser[A]
 }
