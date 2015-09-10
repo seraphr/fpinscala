@@ -27,4 +27,9 @@ object Monoid {
     override def op(l: Boolean, r: Boolean): Boolean = l && r
     override def zero: Boolean = true
   }
+
+  def optionMonoid[A]: Monoid[Option[A]] = new Monoid[Option[A]] {
+    override def op(l: Option[A], r: Option[A]): Option[A] = l orElse r
+    override def zero: Option[A] = None
+  }
 }
