@@ -18,6 +18,10 @@ object CoGen {
     override protected def toLong(a: Char): Long = a.toLong
   }
 
+  implicit object BooleanIsCogen extends CoGen[Boolean] {
+    override protected def toLong(a: Boolean): Long = if (a) 1 else 0
+  }
+
   private def iteratorCogen[A, B: CoGen](f: A => Iterator[B]) = new CoGen[A] {
     private val cogen = implicitly[CoGen[B]]
 

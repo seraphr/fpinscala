@@ -1,7 +1,7 @@
 package jp.seraphr.fpinscala.monoid
 
 /**
-  */
+ */
 trait Monoid[A] {
   def op(l: A, r: A): A
   def zero: A

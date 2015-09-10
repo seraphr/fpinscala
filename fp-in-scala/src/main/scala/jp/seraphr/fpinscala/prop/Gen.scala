@@ -46,6 +46,11 @@ object Gen {
 
   def double: Gen[Double] = Gen(RNG.double, noExhaustive)
 
+  def option[A](g: Gen[A]): Gen[Option[A]] = for {
+    b <- Gen.boolean
+    a <- g
+  } yield if (b) Some(a) else None
+
   def listOfN[A](n: Int, g: Gen[A]): Gen[List[A]] = {
     val tExhaustive = Streams.constant(g.exhaustive).take(n).foldRight(Stream(Stream.empty[Option[A]])) {
       case (s, acc) =>
