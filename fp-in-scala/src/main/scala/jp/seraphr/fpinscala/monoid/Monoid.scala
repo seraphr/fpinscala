@@ -40,4 +40,22 @@ object Monoid {
 
   def concatenate[A](as: List[A], m: Monoid[A]): A = as.foldLeft(m.zero)(m.op)
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B = concatenate(as.map(f), m)
+  def foldMapViaFoldLeft[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldLeft(m.zero)((acc, e) => m.op(acc, f(e)))
+  def foldMapViaFoldRight[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldRight(m.zero)((e, acc) => m.op(f(e), acc))
+  def foldLeftViaFoldMap[A, B](as: List[A])(z: B)(f: (B, A) => B): B = {
+    val tMonoid = new Monoid[B => B] {
+      override def op(l: B => B, r: B => B): B => B = l andThen r
+      override def zero: B => B = identity[B]
+    }
+
+    foldMap(as, tMonoid)(a => b => f(b, a))(z)
+  }
+  def foldRightViaFoldMap[A, B](as: List[A])(z: B)(f: (A, B) => B): B = {
+    val tMonoid = new Monoid[B => B] {
+      override def op(l: B => B, r: B => B): B => B = l compose r
+      override def zero: B => B = identity[B]
+    }
+
+    foldMap(as, tMonoid)(a => b => f(a, b))(z)
+  }
 }
