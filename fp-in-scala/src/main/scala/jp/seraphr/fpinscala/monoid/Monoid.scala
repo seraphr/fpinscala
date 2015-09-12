@@ -37,4 +37,7 @@ object Monoid {
     override def op(l: A => A, r: A => A): A => A = l andThen r
     override def zero: A => A = identity[A]
   }
+
+  def concatenate[A](as: List[A], m: Monoid[A]): A = as.foldLeft(m.zero)(m.op)
+  def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B = concatenate(as.map(f), m)
 }

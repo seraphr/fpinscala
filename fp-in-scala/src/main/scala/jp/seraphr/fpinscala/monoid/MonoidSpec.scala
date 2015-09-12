@@ -71,5 +71,4 @@ object MonoidSpec extends App {
   run(monoidLaws(Monoid.endoMonoid[Int], tGenIntEndo))
   val tGenBoolEndo = Gen.func1[Boolean, Boolean](tGenBool)
   run(monoidLaws(Monoid.endoMonoid[Boolean], tGenBoolEndo))
-
 }
