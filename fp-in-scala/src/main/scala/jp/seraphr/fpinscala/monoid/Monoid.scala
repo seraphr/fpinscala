@@ -1,5 +1,7 @@
 package jp.seraphr.fpinscala.monoid
 
+import jp.seraphr.fpinscala.parallelism.Nonblocking
+
 /**
  */
 trait Monoid[A] {
@@ -64,5 +66,19 @@ object Monoid {
     }
 
     foldMap(as, tMonoid)(a => b => f(a, b))(z)
+  }
+
+  import Nonblocking._
+
+  def par[A](m: Monoid[A]): Monoid[Par[A]] =
+    new Monoid[Par[A]] {
+      override def op(l: Par[A], r: Par[A]): Par[A] = Nonblocking.map2(l, r)(m.op)
+      override def zero: Par[A] = Nonblocking.unit(m.zero)
+    }
+
+  def parFoldMap[A, B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = {
+    val pm = par(m)
+    val fm = asyncF(f)
+    fork(foldMapV(v, pm)(fm))
   }
 }
