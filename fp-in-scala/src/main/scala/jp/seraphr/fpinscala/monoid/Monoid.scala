@@ -40,6 +40,13 @@ object Monoid {
 
   def concatenate[A](as: List[A], m: Monoid[A]): A = as.foldLeft(m.zero)(m.op)
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B = concatenate(as.map(f), m)
+  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B = as match {
+    case IndexedSeq()  => m.zero
+    case IndexedSeq(v) => f(v) // = m.op(m.zero, f(v))
+    case _ =>
+      val (ls, rs) = as.splitAt(as.length / 2)
+      m.op(foldMapV(ls, m)(f), foldMapV(rs, m)(f))
+  }
   def foldMapViaFoldLeft[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldLeft(m.zero)((acc, e) => m.op(acc, f(e)))
   def foldMapViaFoldRight[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldRight(m.zero)((e, acc) => m.op(f(e), acc))
   def foldLeftViaFoldMap[A, B](as: List[A])(z: B)(f: (B, A) => B): B = {
