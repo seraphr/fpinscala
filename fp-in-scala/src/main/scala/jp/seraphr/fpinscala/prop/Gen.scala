@@ -2,6 +2,7 @@ package jp.seraphr.fpinscala.prop
 
 import jp.seraphr.fpinscala.datastructures.{ Lists, Options }
 import jp.seraphr.fpinscala.laziness.Streams
+import jp.seraphr.fpinscala.state.RNG.Rand
 import jp.seraphr.fpinscala.state.{ State, RNG }
 
 /**
@@ -10,7 +11,7 @@ import jp.seraphr.fpinscala.state.{ State, RNG }
  * @param exhaustive 対象ドメインの全領域を数え上げるストリーム。 要素中に一つでもNoneが含まれる場合、数え上げが不可能なことを表す
  * @tparam A
  */
-case class Gen[A](sample: State[RNG, A], exhaustive: Stream[Option[A]]) {
+case class Gen[A](sample: Rand[A], exhaustive: Stream[Option[A]]) {
   def map[B](f: A => B): Gen[B] = Gen(sample.map(f), exhaustive.map(_.map(f)))
 
   def flatMap[B](f: A => Gen[B]): Gen[B] = {
@@ -24,6 +25,9 @@ case class Gen[A](sample: State[RNG, A], exhaustive: Stream[Option[A]]) {
   def listOfN(size: Gen[Int]): Gen[List[A]] = size.flatMap(Gen.listOfN(_, this))
 
   def unsized: SGen[A] = SGen(_ => this)
+
+  import RNG.RandMethods
+  def value(rng: RNG): A = sample.value(rng)
 }
 
 object Gen {
@@ -91,8 +95,9 @@ object Gen {
 
   def func1[A: CoGen, B](gen: Gen[B]): Gen[A => B] = {
     val cogen = implicitly[CoGen[A]]
-    val f: A => Gen[B] = a => cogen.cogen(a)(gen)
+    val reseedGenB: A => Gen[B] = a => cogen.cogen(a)(gen)
 
-    Gen(State(rng => ((a: A) => cogen.cogen(a)(gen).sample.run(rng)._1, rng.nextInt._2)), gen.exhaustive.map(_.map(b => (a: A) => b)))
+    // XXX exhaustive側 引数を無視する関数しか作ってないので、コレだと全パターンの網羅出来てないのでダメだ
+    Gen(State(rng => ((a: A) => reseedGenB(a).value(rng), rng.nextRng)), gen.exhaustive.map(_.map(b => (a: A) => b)))
   }
 }

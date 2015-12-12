@@ -2,6 +2,7 @@ package jp.seraphr.fpinscala.state
 
 trait RNG {
   def nextInt: (Int, RNG)
+  def nextRng = nextInt._2
 }
 
 object RNG {
@@ -12,6 +13,10 @@ object RNG {
       val n = (newSeed >>> 16).toInt // `>>>` is right binary shift with zero fill. The value `n` is our new pseudo-random integer.
       (n, nextRNG) // The return value is a tuple containing both a pseudo-random integer and the next `RNG` state.
     }
+  }
+
+  implicit class RandMethods[A](val rand: Rand[A]) extends AnyVal {
+    def value(rng: RNG): A = rand.run(rng)._1
   }
 
   type Rand[+A] = State[RNG, A]
