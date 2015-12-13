@@ -28,6 +28,7 @@ case class Gen[A](sample: Rand[A], exhaustive: Stream[Option[A]]) {
 
   import RNG.RandMethods
   def value(rng: RNG): A = sample.value(rng)
+  def union(g: Gen[A]) = Gen.union(this, g)
 }
 
 object Gen {
@@ -49,6 +50,11 @@ object Gen {
   def boolean: Gen[Boolean] = Gen(RNG.boolean, Stream(true, false).map(wrap))
 
   def double: Gen[Double] = Gen(RNG.double, noExhaustive)
+
+  def char: Gen[Char] = Gen.choose(Char.MinValue, Char.MaxValue.toInt + 1).map(_.toChar)
+  def alphabet: Gen[Char] = (Gen.choose('a', 'z') union Gen.choose('A', 'Z')).map(_.toChar)
+  def alphaString: SGen[String] = listOf(alphabet).map(_.toArray).map(new String(_))
+  def alphaString(n: Int): Gen[String] = alphaString.forSize(n)
 
   def option[A](g: Gen[A]): Gen[Option[A]] = for {
     b <- Gen.boolean

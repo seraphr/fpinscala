@@ -106,13 +106,13 @@ object Prop {
   def run(p: Prop,
     maxSize: Int = 100,
     testCases: Int = 100,
-    rng: RNG = RNG.Simple(System.currentTimeMillis)): Unit =
+    rng: RNG = RNG.Simple(System.currentTimeMillis)): Either[String, String] =
     p.run(maxSize, testCases, rng) match {
       case Falsified(msg, n) =>
-        println(s"! Falsified after $n passed tests:\n $msg")
+        Left(s"! Falsified after $n passed tests:\n $msg")
       case Passed =>
-        println(s"+ OK, passed $testCases tests.")
+        Right(s"+ OK, passed $testCases tests.")
       case Proved =>
-        println(s"+ OK, proved.")
+        Right(s"+ OK, proved.")
     }
 }

@@ -1,13 +1,12 @@
 package jp.seraphr.fpinscala.monoid
 
 import jp.seraphr.fpinscala.prop.Gen
-import jp.seraphr.fpinscala.prop.Prop.Prop
 import jp.seraphr.fpinscala.state.RNG
-import jp.seraphr.fpinscala.state.RNG.Rand
 
 /**
  */
-object MonoidSpec extends App {
+object MonoidLaws {
+
   import Gen._
   import jp.seraphr.fpinscala.prop.Prop._
 
@@ -55,20 +54,4 @@ object MonoidSpec extends App {
 
     tAssociativeLaw && tIdentityElementLaw1 && tIdentityElementLaw2
   }
-
-  implicit val tGenInt = Gen.choose(-100, 100)
-  run(monoidLaws(Monoid.intAddition, tGenInt))
-  run(monoidLaws(Monoid.intAddition, tGenInt))
-
-  implicit val tGenBool = Gen.boolean
-  run(monoidLaws(Monoid.booleanOr, tGenBool))
-  run(monoidLaws(Monoid.booleanAnd, tGenBool))
-
-  run(monoidLaws(Monoid.optionMonoid[Int], Gen.option(tGenInt)))
-  run(monoidLaws(Monoid.optionMonoid[Boolean], Gen.option(tGenBool)))
-
-  val tGenIntEndo = Gen.func1[Int, Int](tGenInt)
-  run(monoidLaws(Monoid.endoMonoid[Int], tGenIntEndo))
-  val tGenBoolEndo = Gen.func1[Boolean, Boolean](tGenBool)
-  run(monoidLaws(Monoid.endoMonoid[Boolean], tGenBoolEndo))
 }
