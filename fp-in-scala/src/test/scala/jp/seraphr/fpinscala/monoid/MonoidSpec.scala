@@ -16,8 +16,8 @@ class MonoidSpec extends FreeSpec with Matchers {
   import MonoidLaws._
 
   "EXERCISE 10.1" - {
-    def testProp(aProp: Prop.Prop): Unit = {
-      val tResult = jp.seraphr.fpinscala.prop.Prop.run(aProp)
+    def testProp(aProp: Prop.Prop, aTestCases: Int = 100): Unit = {
+      val tResult = jp.seraphr.fpinscala.prop.Prop.run(aProp, testCases = aTestCases)
       tResult shouldBe 'right
     }
 
@@ -139,7 +139,28 @@ class MonoidSpec extends FreeSpec with Matchers {
         def getValue[A](p: Nonblocking.Par[A]): A = Nonblocking.get(p(tExecutor))
         def foldMap[A, B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): B = getValue(Monoid.parFoldMap(v, m)(f))
 
-        testIndexSeqFoldMap(foldMap)
+        try {
+          testIndexSeqFoldMap(foldMap)
+        } finally {
+          tExecutor.shutdown()
+        }
+      }
+    }
+
+    "EXERCISE 10.9" - {
+      "isSorted" in {
+        val tProp1 = Prop.forAll(Gen.listOf(Gen.choose(-1000, 1000)).map(_.toVector)) { tVector =>
+          val tSortedVector = tVector.sorted
+
+          Monoid.isSorted(tSortedVector) == true
+        }
+
+        val tProp2 = Prop.forAll(Gen.listOf(Gen.choose(-1000, 1000)).map(_.toVector)) { tVector =>
+          val tSortedVector = tVector.sorted
+
+          Monoid.isSorted(tVector) == (tSortedVector == tVector)
+        }
+        testProp(tProp1 && tProp2, 500)
       }
     }
   }

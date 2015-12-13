@@ -20,6 +20,26 @@ object Monoid {
     override def zero: Int = 1
   }
 
+  sealed trait IsSorted
+  object IsSorted {
+    case class Sorted(vs: List[Int]) extends IsSorted
+    case object NotSorted extends IsSorted
+    case object Init extends IsSorted
+  }
+
+  val intSorted: Monoid[IsSorted] = new Monoid[IsSorted] {
+    import IsSorted._
+    override def op(l: IsSorted, r: IsSorted): IsSorted = (l, r) match {
+      case (Init, _)                                    => r
+      case (_, Init)                                    => l
+      case (NotSorted, _)                               => NotSorted
+      case (_, NotSorted)                               => NotSorted
+      case (Sorted(lv), Sorted(rv)) if lv.max <= rv.min => Sorted(List(lv.min, rv.max))
+      case _                                            => NotSorted
+    }
+    override def zero: IsSorted = Init
+  }
+
   val booleanOr: Monoid[Boolean] = new Monoid[Boolean] {
     override def op(l: Boolean, r: Boolean): Boolean = l || r
     override def zero: Boolean = false
@@ -67,6 +87,8 @@ object Monoid {
 
     foldMap(as, tMonoid)(a => b => f(a, b))(z)
   }
+
+  def isSorted(as: IndexedSeq[Int]): Boolean = foldMapV(as, intSorted)(e => IsSorted.Sorted(List(e))) != IsSorted.NotSorted
 
   import Nonblocking._
 
