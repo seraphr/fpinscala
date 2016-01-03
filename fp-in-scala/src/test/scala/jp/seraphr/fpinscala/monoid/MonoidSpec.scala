@@ -20,6 +20,7 @@ class MonoidSpec extends FreeSpec with Matchers {
     def testProp(aProp: Prop.Prop, aTestCases: Int = 100): Unit = {
       val tResult = jp.seraphr.fpinscala.prop.Prop.run(aProp, testCases = aTestCases)
       tResult shouldBe 'right
+      println(tResult)
     }
 
     "intAddition" in {
@@ -181,7 +182,45 @@ class MonoidSpec extends FreeSpec with Matchers {
 
         testProp(tMonoidProp, 100)
       }
+    }
 
+    "EXERCISE 10.11" - {
+      "WordCount.count" - {
+        "simple string" in {
+          val tStringGen = Gen.unit("  aa  bb  c  ")
+          val tProp = Prop.forAll(tStringGen)(s => WordCount.count(s) == 3)
+
+          testProp(tProp)
+        }
+
+        "only space" in {
+          val tStringGen = Gen.choose(0, 10).map(n => new String(Array.fill(n)(' ')))
+          val tProp = Prop.forAll(tStringGen)(s => WordCount.count(s) == 0)
+          testProp(tProp)
+        }
+
+        "random string" in {
+          val tStringGen = Gen.choose(1, 100).flatMap(Gen.alphaString(_))
+          val tProp = Prop.forAll(tStringGen)(s => WordCount.count(s) == 1)
+          testProp(tProp)
+        }
+
+        "random string with space" in {
+          val tStringGen = Gen.choose(100, 1000).flatMap(Gen.alphaSpaceString(_))
+          val tProp = Prop.forAll(tStringGen) { s =>
+            val tExpected = s.split(" +") match {
+              case Array()           => 0
+              case a @ Array("", _*) => a.length - 1
+              case a                 => a.length
+            }
+
+            val tActual = WordCount.count(s)
+            tActual == tExpected
+          }
+
+          testProp(tProp)
+        }
+      }
     }
   }
 }

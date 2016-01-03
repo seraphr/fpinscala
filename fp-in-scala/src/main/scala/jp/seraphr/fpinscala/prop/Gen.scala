@@ -19,7 +19,7 @@ case class Gen[A](sample: Rand[A], exhaustive: Stream[Option[A]]) {
       Options.sequenceStream(so.map(a => f(a).exhaustive)).map(_.flatten)
     }
 
-    Gen(sample.flatMap(a => f(a).sample), tExhaustive)
+    Gen(sample.flatMap(a => f(a).sample), if (tExhaustive.nonEmpty) tExhaustive else Stream(Option.empty[B]))
   }
 
   def listOfN(size: Gen[Int]): Gen[List[A]] = size.flatMap(Gen.listOfN(_, this))
@@ -53,8 +53,12 @@ object Gen {
 
   def char: Gen[Char] = Gen.choose(Char.MinValue, Char.MaxValue.toInt + 1).map(_.toChar)
   def alphabet: Gen[Char] = (Gen.choose('a', 'z') union Gen.choose('A', 'Z')).map(_.toChar)
-  def alphaString: SGen[String] = listOf(alphabet).map(_.toArray).map(new String(_))
+  def alphabetAndSpace: Gen[Char] = weighted((unit(' '), 0.1), (alphabet, 0.9))
+  def string(g: Gen[Char]): SGen[String] = listOf(g).map(_.toArray).map(new String(_))
+  def alphaString: SGen[String] = string(alphabet)
   def alphaString(n: Int): Gen[String] = alphaString.forSize(n)
+  def alphaSpaceString: SGen[String] = string(alphabetAndSpace)
+  def alphaSpaceString(n: Int): Gen[String] = alphaSpaceString.forSize(n)
 
   def option[A](g: Gen[A]): Gen[Option[A]] = for {
     b <- Gen.boolean
@@ -77,12 +81,15 @@ object Gen {
 
   def listOf1[A](g: Gen[A]): SGen[List[A]] = SGen(n => listOfN(n max 1, g))
 
-  def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] = boolean.flatMap(b => if (b) g1 else g2)
+  def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] = weighted(g1 -> 0.5, g2 -> 0.5)
 
   def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = {
     val tRatio = g1._2 / (g1._2 + g2._2)
+    val tExhaustive = g1._1.exhaustive ++ g2._1.exhaustive
 
-    double.flatMap(d => if (d < tRatio) g1._1 else g2._1)
+    def result(g: Gen[A]) = Gen(g.sample, tExhaustive)
+
+    double.flatMap(d => if (d < tRatio) result(g1._1) else result(g2._1))
   }
 
   def tuple[A, B](g1: Gen[A], g2: Gen[B]): Gen[(A, B)] = {
