@@ -2,6 +2,7 @@ package jp.seraphr.fpinscala.monoid
 
 import java.util.concurrent.Executors
 
+import jp.seraphr.fpinscala.monoid.WordCount.{ Part, Stub }
 import jp.seraphr.fpinscala.parallelism.Nonblocking
 import jp.seraphr.fpinscala.prop.Gen
 import jp.seraphr.fpinscala.prop.Prop
@@ -162,6 +163,25 @@ class MonoidSpec extends FreeSpec with Matchers {
         }
         testProp(tProp1 && tProp2, 500)
       }
+    }
+
+    "EXERCISE 10.10" - {
+      "wcMonoid" in {
+        val tIntGen = Gen.choose(0, 100)
+        val tStringGen = Gen.choose(0, 100).flatMap(Gen.alphaString(_))
+        val tStubGen = tStringGen.map(WordCount.stub)
+        val tPartGen = for {
+          l <- tStringGen
+          wc <- tIntGen
+          r <- tStringGen
+        } yield WordCount.part(l, wc, r)
+
+        val tWCGen = Gen.union(tStubGen, tPartGen)
+        val tMonoidProp = monoidLaws(WordCount.wcMonoid, tWCGen)
+
+        testProp(tMonoidProp, 100)
+      }
+
     }
   }
 }
