@@ -38,5 +38,11 @@ object Foldable {
     override def foldLeft[A, B](as: Stream[A])(z: B)(f: (B, A) => B): B = Streams.foldLeft(as)(z)((b, a) => f(b, a))
     override def foldMap[A, B](as: Stream[A])(f: A => B)(mb: Monoid[B]): B = foldRight(as)(mb.zero)((a, b) => mb.op(f(a), b))
   }
+
+  object TreeFoldable extends Foldable[Tree] {
+    override def foldRight[A, B](as: Tree[A])(z: B)(f: (A, B) => B): B = Tree.foldRight(as, z)(f)
+    override def foldLeft[A, B](as: Tree[A])(z: B)(f: (B, A) => B): B = Tree.foldLeft(as, z)(f)
+    override def foldMap[A, B](as: Tree[A])(f: A => B)(mb: Monoid[B]): B = Tree.fold(as)(f, mb.op)
+  }
 }
 
