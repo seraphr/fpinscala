@@ -103,4 +103,11 @@ object Monoid {
     val fm = asyncF(f)
     fork(foldMapV(v, pm)(fm))
   }
+
+  def productMonoid[A, B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+    override def op(l: (A, B), r: (A, B)): (A, B) = (l, r) match {
+      case ((ll, lr), (rl, rr)) => (A.op(ll, rl), B.op(lr, rr))
+    }
+    override val zero: (A, B) = (A.zero, B.zero)
+  }
 }

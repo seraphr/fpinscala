@@ -222,5 +222,21 @@ class MonoidSpec extends FreeSpec with Matchers {
         }
       }
     }
+
+    "EXERCISE 10.16" - {
+      def testMonoidLaw[A, B](a: Monoid[A], b: Monoid[B], ga: Gen[A], gb: Gen[B]): Unit = {
+        val tProduct = Monoid.productMonoid(a, b)
+        val tGen = Gen.tuple(ga, gb)
+        testProp(monoidLaws(tProduct, tGen))
+      }
+
+      "Int product Int" in {
+        testMonoidLaw(Monoid.intAddition, Monoid.intMultiplication, Gen.choose(0, 100), Gen.choose(100, 200))
+      }
+
+      "Boolean product Boolean" in {
+        testMonoidLaw(Monoid.booleanAnd, Monoid.booleanOr, Gen.boolean, Gen.boolean)
+      }
+    }
   }
 }
