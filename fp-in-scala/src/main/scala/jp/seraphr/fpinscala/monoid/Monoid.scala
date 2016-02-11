@@ -110,4 +110,9 @@ object Monoid {
     }
     override val zero: (A, B) = (A.zero, B.zero)
   }
+
+  def functionMonoid[A, B](B: Monoid[B]): Monoid[A => B] = new Monoid[A => B] {
+    override def op(l: A => B, r: A => B): A => B = a => B.op(l(a), r(a))
+    override def zero: A => B = _ => B.zero
+  }
 }

@@ -31,6 +31,18 @@ object MonoidLaws {
         }
       }
     }
+
+    implicit def Func1Eq[A: Gen, B: Equals]: Equals[A => B] = new Equals[A => B] {
+      private val gen = implicitly[Gen[A]]
+      private val rng = RNG.Simple(0)
+      private val eq = implicitly[Equals[B]]
+      override def eq(l: A => B, r: A => B): Boolean = {
+        val tRandoms = randomStream(gen)(rng).take(100)
+        tRandoms.forall { v =>
+          eq.eq(l(v), r(v))
+        }
+      }
+    }
   }
 
   def monoidLaws[A](m: Monoid[A], gen: Gen[A])(implicit evEq: Equals[A]): Prop = {

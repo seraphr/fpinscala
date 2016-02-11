@@ -238,5 +238,12 @@ class MonoidSpec extends FreeSpec with Matchers {
         testMonoidLaw(Monoid.booleanAnd, Monoid.booleanOr, Gen.boolean, Gen.boolean)
       }
     }
+
+    "EXERCISE 10.17" - {
+      val tMonoid = Monoid.functionMonoid[String, Int](Monoid.intAddition)
+      val tGen = Gen.func1[String, Int](Gen.choose(-100, 100))
+      implicit val tStrGen = Gen.alphaString(10)
+      testProp(monoidLaws(tMonoid, tGen))
+    }
   }
 }
