@@ -3,9 +3,9 @@ package jp.seraphr.fpinscala.monoid
 /**
  */
 object WordCount {
-  trait WC
-  sealed case class Stub(chars: String) extends WC
-  sealed case class Part(lStub: String, words: Int, rStub: String) extends WC
+  sealed trait WC
+  case class Stub(chars: String) extends WC
+  case class Part(lStub: String, words: Int, rStub: String) extends WC
 
   def stub(chars: String): WC = Stub(chars)
   def part(lStub: String, words: Int, rStub: String): WC = Part(lStub, words, rStub)

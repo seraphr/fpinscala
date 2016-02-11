@@ -3,6 +3,18 @@ package jp.seraphr.fpinscala.laziness
 /**
  */
 object Streams {
+  def foldRight[A, B](s: Stream[A])(z: => B)(f: (A, => B) => B): B = s match {
+    case x #:: xs => f(x, foldRight(xs)(z)(f))
+    case _ => z
+  }
+
+  def foldLeft[A, B](as: Stream[A])(z: => B)(f: (=> B, A) => B): B = as match {
+    case x #:: xs => foldLeft(xs)(f(z, x))(f)
+    case _ => z
+  }
+
+
+
   def unfold[A, S](s: S)(f: S => Option[(A, S)]): Stream[A] = f(s) match {
     case Some((a, s1)) => a #:: unfold(s1)(f)
     case _             => Stream.empty[A]
