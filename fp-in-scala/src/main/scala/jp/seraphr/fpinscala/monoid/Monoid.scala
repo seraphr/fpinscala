@@ -115,4 +115,20 @@ object Monoid {
     override def op(l: A => B, r: A => B): A => B = a => B.op(l(a), r(a))
     override def zero: A => B = _ => B.zero
   }
+
+  def mapMergeMonoid[K, V](V: Monoid[V]): Monoid[Map[K, V]] = new Monoid[Map[K, V]] {
+    override def zero: Map[K, V] = Map()
+    override def op(l: Map[K, V], r: Map[K, V]): Map[K, V] = {
+      (l.keySet ++ r.keySet).foldLeft(zero) { (acc, k) =>
+        val tLValue = l.getOrElse(k, V.zero)
+        val tRValue = r.getOrElse(k, V.zero)
+        acc.updated(k, V.op(tLValue, tRValue))
+      }
+    }
+  }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = {
+    val tBagMonoid = mapMergeMonoid[A, Int](intAddition)
+    foldMapV(as, tBagMonoid)(a => Map(a -> 1))
+  }
 }

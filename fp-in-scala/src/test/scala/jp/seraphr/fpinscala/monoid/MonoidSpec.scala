@@ -239,11 +239,23 @@ class MonoidSpec extends FreeSpec with Matchers {
       }
     }
 
-    "EXERCISE 10.17" - {
+    "EXERCISE 10.17" in {
       val tMonoid = Monoid.functionMonoid[String, Int](Monoid.intAddition)
       val tGen = Gen.func1[String, Int](Gen.choose(-100, 100))
       implicit val tStrGen = Gen.alphaString(10)
       testProp(monoidLaws(tMonoid, tGen))
+    }
+
+    "EXERCIZE 10.18" in {
+      val tVectorGen = Gen.listOf(Gen.choose(-100, 100)).map(_.toVector)
+      val tProp = Prop.forAll(tVectorGen) { tVec =>
+        val tBagResult = Monoid.bag(tVec)
+        val tExpected = tVec.groupBy(identity).mapValues(_.size)
+
+        tBagResult == tExpected
+      }
+
+      testProp(tProp)
     }
   }
 }
