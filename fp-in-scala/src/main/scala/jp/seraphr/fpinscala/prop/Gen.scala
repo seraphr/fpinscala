@@ -111,6 +111,8 @@ object Gen {
     val reseedGenB: A => Gen[B] = a => cogen.cogen(a)(gen)
 
     // XXX exhaustive側 引数を無視する関数しか作ってないので、コレだと全パターンの網羅出来てないのでダメだ
-    Gen(State(rng => ((a: A) => reseedGenB(a).value(rng), rng.nextRng)), gen.exhaustive.map(_.map(b => (a: A) => b)))
+    //    Gen(State(rng => ((a: A) => reseedGenB(a).value(rng), rng.nextRng)), gen.exhaustive.map(_.map(b => (a: A) => b)))
+    // exhaustive は、少なくともAがGenじゃ無いと無理なのでとりあえず諦める
+    Gen(State(rng => ((a: A) => reseedGenB(a).value(rng), rng.nextRng)), genericNoExhaustive)
   }
 }
