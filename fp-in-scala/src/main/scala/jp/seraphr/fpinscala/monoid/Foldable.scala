@@ -44,5 +44,11 @@ object Foldable {
     override def foldLeft[A, B](as: Tree[A])(z: B)(f: (B, A) => B): B = Tree.foldLeft(as, z)(f)
     override def foldMap[A, B](as: Tree[A])(f: A => B)(mb: Monoid[B]): B = Tree.fold(as)(f, mb.op)
   }
+
+  object OptionFoldable extends Foldable[Option] {
+    override def foldRight[A, B](as: Option[A])(z: B)(f: (A, B) => B): B = as.fold(z)(f(_, z))
+    override def foldLeft[A, B](as: Option[A])(z: B)(f: (B, A) => B): B = as.fold(z)(f(z, _))
+    override def foldMap[A, B](as: Option[A])(f: (A) => B)(mb: Monoid[B]): B = as.fold(mb.zero)(f)
+  }
 }
 
