@@ -1,7 +1,7 @@
 import scalariform.formatter.preferences._
 
 val Organization = "jp.seraphr"
-val ScalaVersion = "2.11.6"
+val ScalaVersion = "2.11.8"
 val Version = "0.1.0-SNAPSHOT"
 
 val RiformSettings = scalariformSettings ++ (
