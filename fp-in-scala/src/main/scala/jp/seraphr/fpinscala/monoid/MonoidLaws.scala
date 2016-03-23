@@ -2,6 +2,7 @@ package jp.seraphr.fpinscala.monoid
 
 import jp.seraphr.fpinscala.prop.Gen
 import jp.seraphr.fpinscala.state.RNG
+import jp.seraphr.fpinscala.utils.Equal
 
 /**
  */
@@ -10,42 +11,7 @@ object MonoidLaws {
   import Gen._
   import jp.seraphr.fpinscala.prop.Prop._
 
-  trait Equals[A] {
-    def eq(l: A, r: A): Boolean
-  }
-
-  trait WeakEqualsInstance {
-    implicit def DefaultEq[A]: Equals[A] = new Equals[A] {
-      override def eq(l: A, r: A): Boolean = l == r
-    }
-  }
-
-  object Equals extends WeakEqualsInstance {
-    implicit def EndoEq[A: Gen]: Equals[A => A] = new Equals[A => A] {
-      private val gen = implicitly[Gen[A]]
-      private val rng = RNG.Simple(0)
-      override def eq(l: A => A, r: A => A): Boolean = {
-        val tRandoms = randomStream(gen)(rng).take(100)
-        tRandoms.forall { v =>
-          l(v) == r(v)
-        }
-      }
-    }
-
-    implicit def Func1Eq[A: Gen, B: Equals]: Equals[A => B] = new Equals[A => B] {
-      private val gen = implicitly[Gen[A]]
-      private val rng = RNG.Simple(0)
-      private val eq = implicitly[Equals[B]]
-      override def eq(l: A => B, r: A => B): Boolean = {
-        val tRandoms = randomStream(gen)(rng).take(100)
-        tRandoms.forall { v =>
-          eq.eq(l(v), r(v))
-        }
-      }
-    }
-  }
-
-  def monoidLaws[A](m: Monoid[A], gen: Gen[A])(implicit evEq: Equals[A]): Prop = {
+  def monoidLaws[A](m: Monoid[A], gen: Gen[A])(implicit evEq: Equal[A]): Prop = {
     implicit class MonoidOpt(l: A) {
       def op(r: A) = m.op(l, r)
       def ===(r: A) = evEq.eq(l, r)
