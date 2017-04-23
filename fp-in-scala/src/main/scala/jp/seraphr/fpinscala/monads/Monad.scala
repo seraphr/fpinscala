@@ -27,6 +27,8 @@ trait Monad[M[_]] extends Functor[M] {
     case a :: as => map2(f(a), traverse(as)(f))(_ :: _)
   }
   def sequence[A](lma: List[M[A]]): M[List[A]] = traverse(lma)(identity)
+
+  def replicateM[A](n: Int, ma: M[A]): M[List[A]] = sequence(List.fill(n)(ma))
 }
 
 object Monad {
