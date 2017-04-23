@@ -42,7 +42,17 @@ trait Monad[M[_]] extends Functor[M] {
   def flatMapViaJoin[A, B](ma: M[A])(f: A => M[B]): M[B] = join(map(ma)(f))
 }
 
+case class Id[A](value: A) {
+  def map[B](f: A => B): Id[B] = Id(f(value))
+  def flatMap[B](f: A => Id[B]): Id[B] = f(value)
+}
+
 object Monad {
+  val idMonad = new Monad[Id] {
+    override def unit[A](a: A): Id[A] = Id(a)
+    override def flatMap[A, B](ma: Id[A])(f: (A) => Id[B]): Id[B] = ma.flatMap(f)
+  }
+
   val genMonad = new Monad[Gen] {
     override def unit[A](a: A): Gen[A] = Gen.unit(a)
     override def flatMap[A, B](ma: Gen[A])(f: (A) => Gen[B]): Gen[B] = ma.flatMap(f)
