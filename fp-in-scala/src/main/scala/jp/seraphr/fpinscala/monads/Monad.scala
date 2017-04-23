@@ -86,6 +86,16 @@ object MonadLaws {
   import Gen._
   import jp.seraphr.fpinscala.prop.Prop._
 
+  // EXERCISE 11.14
+  // left identity
+  // join(unit(ma)) === ma
+
+  // right identity
+  // join(ma map unit) === ma
+
+  // associative
+  // join(join(mmma)) === join((mmma map join))
+
   def monadLaws[M[_], A, B, C](m: Monad[M], aGenA: Gen[A], aGenF: Gen[A => M[B]], aGenG: Gen[B => M[C]])(implicit eqA: Equal[M[A]], eqB: Equal[M[B]], eqC: Equal[M[C]]): Prop = {
     implicit class MonadOpt[X](l: M[X]) {
       def flatMap[Y](f: X => M[Y]): M[Y] = m.flatMap(l)(f)
