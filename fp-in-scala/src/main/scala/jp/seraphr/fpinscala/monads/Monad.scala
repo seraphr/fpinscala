@@ -27,8 +27,11 @@ trait Monad[M[_]] extends Functor[M] {
     case a :: as => map2(f(a), traverse(as)(f))(_ :: _)
   }
   def sequence[A](lma: List[M[A]]): M[List[A]] = traverse(lma)(identity)
-
   def replicateM[A](n: Int, ma: M[A]): M[List[A]] = sequence(List.fill(n)(ma))
+  def filterM[A](ms: List[A])(f: A => M[Boolean]): M[List[A]] = {
+    val lmab: M[List[(A, Boolean)]] = traverse(ms)(a => map(f(a))((a, _)))
+    map(lmab)(_.collect { case (a, b) if b => a })
+  }
 }
 
 object Monad {
