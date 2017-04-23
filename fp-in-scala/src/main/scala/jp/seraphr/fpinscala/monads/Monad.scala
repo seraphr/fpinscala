@@ -32,6 +32,10 @@ trait Monad[M[_]] extends Functor[M] {
     val lmab: M[List[(A, Boolean)]] = traverse(ms)(a => map(f(a))((a, _)))
     map(lmab)(_.collect { case (a, b) if b => a })
   }
+
+  def compose[A, B, C](f: A => M[B], g: B => M[C]): A => M[C] = a => {
+    flatMap(f(a))(g)
+  }
 }
 
 object Monad {
