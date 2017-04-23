@@ -2,6 +2,7 @@ package jp.seraphr.fpinscala.monoid
 
 import jp.seraphr.fpinscala.monads.Monad
 import jp.seraphr.fpinscala.prop.{ Gen, Prop }
+import jp.seraphr.fpinscala.state.State
 import jp.seraphr.fpinscala.utils.Equal
 import org.scalatest.{ Matchers, FreeSpec }
 
@@ -50,6 +51,19 @@ class MonadSpec extends FreeSpec with Matchers {
 
     "listMonad" in {
       testMonadLaw(Monad.listMonad)(Gen.listOfN(10, Gen.choose(1000, 2000)))
+    }
+  }
+
+  "EXERCISE 11.2" - {
+    "stateMonad" in {
+      // XXX runの引数固定だけど、とりあえずということで…
+      type _M[X] = State[String, X]
+      implicit def stateEq[A]: Equal[_M[A]] = new Equal[_M[A]] {
+        override def eq(l: _M[A], r: _M[A]): Boolean = {
+          l.run("hoge") == r.run("hoge")
+        }
+      }
+      testMonadLaw[_M](Monad.stateMonad[String])(Gen.choose(-100, 100).map(State.unit))
     }
   }
 }

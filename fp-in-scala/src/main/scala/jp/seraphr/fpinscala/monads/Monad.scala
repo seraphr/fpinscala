@@ -5,6 +5,7 @@ import jp.seraphr.fpinscala.laziness.Streams
 import jp.seraphr.fpinscala.parallelism.{ Par, ParApi }
 import jp.seraphr.fpinscala.parser.Parsers
 import jp.seraphr.fpinscala.prop.Gen
+import jp.seraphr.fpinscala.state.State
 import jp.seraphr.fpinscala.utils.Equal
 
 import scala.language.higherKinds
@@ -55,6 +56,11 @@ object Monad {
   val listMonad = new Monad[List] {
     override def unit[A](a: A): List[A] = List(a)
     override def flatMap[A, B](ma: List[A])(f: (A) => List[B]): List[B] = ma.flatMap(f)
+  }
+
+  def stateMonad[S]: Monad[({ type M[X] = State[S, X] })#M] = new Monad[({ type M[X] = State[S, X] })#M] {
+    override def unit[A](a: A): State[S, A] = State.unit(a)
+    override def flatMap[A, B](ma: State[S, A])(f: (A) => State[S, B]): State[S, B] = ma.flatMap(f)
   }
 }
 
