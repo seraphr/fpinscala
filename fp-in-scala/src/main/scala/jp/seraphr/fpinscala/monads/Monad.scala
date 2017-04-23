@@ -39,6 +39,7 @@ trait Monad[M[_]] extends Functor[M] {
 
   def flatMapViaCompose[A, B](ma: M[A])(f: A => M[B]): M[B] = compose[M[A], A, B](identity, f)(ma)
   def join[A](mma: M[M[A]]): M[A] = flatMap(mma)(identity)
+  def flatMapViaJoin[A, B](ma: M[A])(f: A => M[B]): M[B] = join(map(ma)(f))
 }
 
 object Monad {
